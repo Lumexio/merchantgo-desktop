@@ -3,6 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "public/electron.js",
+  "build": {
+    "appId": "com.merchantgo.desktop",
+    "productName": "MerchantGo KDS",
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -18,6 +32,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "lucide-react": "^1.27.0",
     "oxlint": "^1.71.0",
     "vite": "^8.1.1"

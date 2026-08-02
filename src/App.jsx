@@ -3,7 +3,6 @@ import { Printer, ArrowLeftRight } from 'lucide-react';
 import './index.css';
 import {
   authenticatePin,
-  enqueueDesktopOperation,
   executeCashout,
   fetchActiveOrders,
   flushDesktopQueue,
@@ -11,6 +10,19 @@ import {
   settleCloudOrder,
   transferCloudOrder,
 } from './api/kdsService';
+import {
+  addLocalStaff,
+  authenticateLocalPin,
+  closeLocalShift,
+  createLocalAdmin,
+  createLocalOrder,
+  getLocalShift,
+  getLocalMode,
+  hasLocalRegister,
+  listLocalOrders,
+  settleLocalOrder,
+  startLocalShift,
+} from './localPos';
 
 const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
   const [selectedExtras, setSelectedExtras] = useState([]);
@@ -56,10 +68,36 @@ const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
   );
 };
 
+const LocalPinGate = ({ onAuthenticate }) => {
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const unlock = async () => {
+    try {
+      onAuthenticate(await authenticateLocalPin(pin));
+    } catch (caught) {
+      setError(caught.message || 'Invalid local staff PIN');
+      setPin('');
+    }
+  };
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0c10', display: 'grid', placeItems: 'center', color: '#fff' }}>
+      <div className="glass-panel" style={{ width: '380px', padding: '36px', textAlign: 'center' }}>
+        <h1 style={{ marginBottom: '8px' }}>Terminal locked</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Enter your local staff PIN.</p>
+        <input autoFocus type="password" inputMode="numeric" value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} onKeyDown={event => event.key === 'Enter' && unlock()} placeholder="Staff PIN" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(0,0,0,.4)', color: '#fff', marginBottom: '12px' }} />
+        {error && <p style={{ color: '#ff8585', marginBottom: '12px' }}>{error}</p>}
+        <button onClick={unlock} className="btn-pos" style={{ width: '100%', padding: '14px' }}>Unlock terminal</button>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
-  const [isFirstLaunch, setIsFirstLaunch] = useState(true);
+  const [isFirstLaunch, setIsFirstLaunch] = useState(() => !hasLocalRegister());
   const [isSettingUpOffline, setIsSettingUpOffline] = useState(false);
   const [localAdminName, setLocalAdminName] = useState('');
+  const [localAdminPin, setLocalAdminPin] = useState('');
+  const [localMode, setLocalMode] = useState('SOLO_FOOD_TRUCK');
   const [cloudPin, setCloudPin] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,7 +110,10 @@ export default function App() {
   const [printerStatus, setPrinterStatus] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lastZReport, setLastZReport] = useState(null);
-
+  const [localShift, setLocalShift] = useState(() => getLocalShift());
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [shiftPin, setShiftPin] = useState('');
+  const [shiftError, setShiftError] = useState('');
   const [accounts, setAccounts] = useState([]);
 
   useEffect(() => {
@@ -90,6 +131,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (session?.offline) {
+      setAccounts(listLocalOrders().map(order => ({
+        ...order,
+        server: order.operatorName,
+        time: 'Local',
+        items: order.items || [],
+      })));
+      return;
+    }
     if (!session?.token) return;
     fetchActiveOrders(session.token)
       .then(cloudOrders => setAccounts(cloudOrders))
@@ -100,6 +150,21 @@ export default function App() {
     if (!session?.token || session?.offline) return;
     flushDesktopQueue(session.token).catch(() => null);
   }, [session?.token, session?.offline]);
+
+  useEffect(() => {
+    if (!session) return;
+    let timer = window.setTimeout(() => setSession(null), 5 * 60 * 1000);
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setSession(null), 5 * 60 * 1000);
+    };
+    const events = ['pointerdown', 'keydown'];
+    events.forEach(event => window.addEventListener(event, reset));
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach(event => window.removeEventListener(event, reset));
+    };
+  }, [session]);
 
   const handlePrintTicket = (ticketData) => {
     if (window.merchantGoIPC) {
@@ -139,23 +204,16 @@ export default function App() {
       }
       return;
     }
-    if (session?.offline) {
-      enqueueDesktopOperation({ kind: 'cashout', payload: { type }, created_at: new Date().toISOString() });
+    try {
+      const report = closeLocalShift();
+      setLastZReport(report);
+      handlePrintTicket(report);
+      setLocalShift(null);
+      alert(`${report.id} generated. The staff shift is closed and the terminal will lock.`);
+      setSession(null);
+    } catch (error) {
+      setConnectionError(error.message);
     }
-    const sum = accounts.reduce((acc, a) => acc + a.total, 0);
-    const report = {
-      id: `Z-${Math.floor(1000 + Math.random() * 9000)}`,
-      type,
-      time: new Date().toLocaleTimeString() + ' • ' + new Date().toLocaleDateString(),
-      gross_sales: `$${(sum + 4120.50).toFixed(2)}`,
-      cash_collected: `$${((sum + 4120.50) * 0.42).toFixed(2)}`,
-      card_settled: `$${((sum + 4120.50) * 0.58).toFixed(2)}`,
-      waiter_tips_pool: `$${((sum + 4120.50) * 0.15).toFixed(2)}`,
-      status: 'SHIFT CLOSED & STOCKMACHINE ARCHIVES SYNCED'
-    };
-
-    setLastZReport(report);
-    handlePrintTicket(report);
   };
 
   const connectCloudStation = async () => {
@@ -185,7 +243,8 @@ export default function App() {
     try {
       if (session?.token) await settleCloudOrder(session.token, id, method);
       else if (session?.offline) {
-        enqueueDesktopOperation({ kind: 'settle_order', payload: { orderId: id, paymentMethod: method }, created_at: new Date().toISOString() });
+        if (!localShift) throw new Error('Start a staff shift before settling accounts');
+        settleLocalOrder(id, method);
       }
       setAccounts(accounts.filter(account => account.id !== id));
       if (method === 'CASH') handleOpenDrawer();
@@ -198,9 +257,6 @@ export default function App() {
     if (!can('TRANSFER_ORDER')) return;
     try {
       if (session?.token) await transferCloudOrder(session.token, id, 'Manager Station');
-      else if (session?.offline) {
-        enqueueDesktopOperation({ kind: 'transfer_order', payload: { orderId: id, staffName: 'Manager Station' }, created_at: new Date().toISOString() });
-      }
       setAccounts(accounts.map(account => account.id === id ? { ...account, server: 'Manager Station' } : account));
     } catch (error) {
       setConnectionError(error.message);
@@ -236,18 +292,19 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <h2 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Create Local Admin</h2>
               <input type="text" placeholder="Admin Name (e.g. Boss)" value={localAdminName} onChange={e => setLocalAdminName(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
-              <input type="password" placeholder="Secure Password" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
-              <button style={{ padding: '14px', borderRadius: '8px', border: 'none', background: '#00ff66', color: '#000', fontWeight: 600, marginTop: '8px', cursor: 'pointer' }} onClick={() => {
-                setSession({
-                  id: 'local-admin',
-                  name: localAdminName || 'Local Admin',
-                  role: 'ADMIN',
-                  plan: 'FREE',
-                  mode: 'SOLO_FOOD_TRUCK',
-                  offline: true,
-                  entitlements: { features: ['CREATE_ORDER', 'SETTLE_ORDER', 'VIEW_ANALYTICS', 'MANAGE_MENU', 'INDIVIDUAL_CASHOUT'], limits: { menuItems: 25, staff: 1, branches: 1 } },
-                });
-                setIsFirstLaunch(false);
+              <select value={localMode} onChange={event => setLocalMode(event.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#14171e', color: '#fff' }}>
+                <option value="SOLO_FOOD_TRUCK">Solo Food Truck</option>
+                <option value="MULTI_STATION_BAR">Multi-station Restaurant / Bar</option>
+              </select>
+              <input type="password" inputMode="numeric" placeholder="4 digit staff PIN" value={localAdminPin} onChange={event => setLocalAdminPin(event.target.value.replace(/\D/g, '').slice(0, 4))} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
+              <button style={{ padding: '14px', borderRadius: '8px', border: 'none', background: '#00ff66', color: '#000', fontWeight: 600, marginTop: '8px', cursor: 'pointer' }} onClick={async () => {
+                try {
+                  setConnectionError(null);
+                  setSession(await createLocalAdmin(localAdminName, localAdminPin, localMode));
+                  setIsFirstLaunch(false);
+                } catch (error) {
+                  setConnectionError(error.message);
+                }
               }}>
                 Initialize Local Terminal
               </button>
@@ -256,6 +313,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (!session && hasLocalRegister()) {
+    return <LocalPinGate onAuthenticate={setSession} />;
   }
 
   return (
@@ -288,6 +349,12 @@ export default function App() {
         </nav>
 
         <div style={{ display: 'flex', gap: '12px' }}>
+          {session?.offline && (
+            <button onClick={() => setShiftModalOpen(true)} className="btn-secondary" style={{ padding: '8px 14px', color: localShift ? '#00ff66' : '#ffb800' }}>
+              {localShift ? `✓ Shift: ${localShift.staffName}` : 'Start staff shift'}
+            </button>
+          )}
+          <button onClick={() => setSession(null)} className="btn-secondary" style={{ padding: '8px 14px' }}>🔒 Lock</button>
           <button onClick={() => handleOpenDrawer()} className="btn-secondary" style={{ padding: '8px 14px', fontSize: '0.85rem', color: '#ff6b00', borderColor: '#ff6b00' }}>
             🔓 Open Drawer
           </button>
@@ -502,6 +569,43 @@ export default function App() {
             setActiveDesktopMod(null);
           }} 
         />
+      )}
+      {shiftModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center' }}>
+          <div className="glass-panel" style={{ width: '420px', padding: '32px' }}>
+            <h2 style={{ marginBottom: '8px' }}>{localShift ? 'Active staff shift' : 'Start staff shift'}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '18px' }}>
+              {localShift ? `Started ${new Date(localShift.openedAt).toLocaleString()}. Generate a Z-report to end it.` : 'Enter your local staff PIN.'}
+            </p>
+            {!localShift && <input autoFocus type="password" inputMode="numeric" value={shiftPin} onChange={event => setShiftPin(event.target.value.replace(/\D/g, '').slice(0, 8))} onKeyDown={async event => {
+              if (event.key !== 'Enter') return;
+              try {
+                const next = await startLocalShift(shiftPin);
+                setLocalShift(next);
+                setShiftModalOpen(false);
+                setShiftPin('');
+                setShiftError('');
+              } catch (error) {
+                setShiftError(error.message);
+              }
+            }} placeholder="Staff PIN" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(0,0,0,.4)', color: '#fff', marginBottom: '12px' }} />}
+            {shiftError && <p style={{ color: '#ff8585', marginBottom: '12px' }}>{shiftError}</p>}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => { setShiftModalOpen(false); setShiftError(''); }} className="btn-secondary" style={{ flex: 1, padding: '12px' }}>Close</button>
+              {!localShift && <button onClick={async () => {
+                try {
+                  const next = await startLocalShift(shiftPin);
+                  setLocalShift(next);
+                  setShiftModalOpen(false);
+                  setShiftPin('');
+                  setShiftError('');
+                } catch (error) {
+                  setShiftError(error.message);
+                }
+              }} className="btn-pos" style={{ flex: 2, padding: '12px' }}>Start shift</button>}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -9,33 +9,60 @@ permissions:
   contents: write
 
 jobs:
-  build-desktop:
-    name: 💻 Compile Windows & Linux Executables
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          
-      - name: Install & Build
-        run: |
-          npm ci --legacy-peer-deps
-          npm pkg set version="${GITHUB_REF_NAME#v}"
-          npm run build
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Set package version
+        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+
+      - name: Build
+        run: npm run build
         env:
           VITE_API_BASE_URL: https://api.merchantgo.store
-          
-      - name: Compile Electron Executables
-        run: npx electron-builder --linux --win --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Upload to GitHub Releases
+
+      - name: Package AppImage
+        run: npx electron-builder --linux AppImage --publish never
+
+      - name: Upload AppImage
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*.exe
-            dist/*.AppImage
+          files: dist/*.AppImage
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Set package version
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v',''
+          npm pkg set version=$version
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://api.merchantgo.store
+
+      - name: Package NSIS installer
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Upload installer
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe

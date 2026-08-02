@@ -29,15 +29,18 @@ jobs:
         env:
           VITE_API_BASE_URL: https://api.merchantgo.store
 
-      - name: Package AppImage
-        run: npx electron-builder --linux AppImage --publish never
+      - name: Install Debian packaging dependency
+        run: sudo apt-get update && sudo apt-get install -y libcrypt1
 
-      - name: Upload AppImage
+      - name: Package Debian installer
+        run: npx electron-builder --linux deb --publish never
+
+      - name: Upload Debian installer
         uses: softprops/action-gh-release@v2
         with:
           name: MerchantGo ${{ github.ref_name }}
           generate_release_notes: true
-          files: dist/*.AppImage
+          files: dist/*.deb
 
   build-windows:
     runs-on: windows-latest

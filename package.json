@@ -2,6 +2,11 @@
   "name": "merchantgo-desktop",
   "private": true,
   "version": "0.0.0",
+  "description": "MerchantGo desktop point-of-sale application",
+  "author": {
+    "name": "Lumexio",
+    "email": "fsmsoftdev@gmail.com"
+  },
   "type": "module",
   "main": "public/electron.js",
   "build": {
@@ -11,7 +16,7 @@
       "output": "dist"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "deb"
     },
     "win": {
       "target": "nsis"

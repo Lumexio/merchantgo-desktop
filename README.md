@@ -1,5 +1,10 @@
 # React + Vite
 
+[![AI Ready](https://img.shields.io/badge/AI--Ready-yes-brightgreen?style=flat)](https://github.com/johnpapa/ai-ready)
+
+MerchantGo's Electron cashier and kitchen display client for live order state,
+payments, and shift cashout.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
@@ -10,6 +15,23 @@ Currently, two official plugins are available:
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Validation
+
+```bash
+npm ci
+npm run lint
+npm run build
+```
+
+Run Electron Builder when packaging or native behavior changes.
+
+## Contributing
+
+Create a focused branch and run lint and build before opening a pull request.
+Preserve Electron isolation and the narrow preload bridge, keep financial and
+order contracts aligned with the backend, and document platform, release, and
+mobile/web parity impact.
 
 ## Expanding the Oxlint configuration
 

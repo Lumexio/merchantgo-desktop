@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible MerchantGo desktop, cashier, or KDS defect.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include order/cashout steps, role, tenant/branch, and whether reconnect or restart is involved.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Orders or KDS, Payments or cashout, Authentication, Electron IPC, Printing or filesystem, Packaging or release, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, app version, display setup, API environment, and sanitized main/renderer logs.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, personal data, payment data, and tenant-sensitive values.
+          required: true

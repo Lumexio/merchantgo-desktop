@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a MerchantGo cashier, KDS, or desktop integration capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior
+      description: Include roles, order/payment flow, IPC or hardware needs, errors, and supported platforms.
+    validations:
+      required: true
+  - type: textarea
+    id: cascade
+    attributes:
+      label: Cross-repository and packaging impact
+      description: Note backend, mobile, web, preload/main process, permissions, installers, and release changes.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true

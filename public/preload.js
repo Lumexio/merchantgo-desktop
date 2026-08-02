@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('merchantGoIPC', {
   on: (channel, func) => {
     const validChannels = ['print-ticket-status', 'drawer-status', 'websocket-sync-event'];
     if (validChannels.includes(channel)) {
-      ipcRenderer.on(channel, (event, ...args) => func(...args));
+      ipcRenderer.on(channel, (_event, ...args) => func(...args));
     }
   }
 });

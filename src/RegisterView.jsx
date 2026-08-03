@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 export default function RegisterView({ menuItems, session, onSettle }) {
   const [cart, setCart] = useState([]);
   const [cashTendered, setCashTendered] = useState(null);
+  
+  // ponytail: minimal unabstracted local storage for terminal
+  const [terminalProvider, setTerminalProvider] = useState(localStorage.getItem('terminal_provider') || 'NONE');
+  const [terminalId, setTerminalId] = useState(localStorage.getItem('terminal_id') || '');
 
   const addToCart = (item) => {
     const existing = cart.find(c => c.id === item.id);
@@ -87,9 +91,35 @@ export default function RegisterView({ menuItems, session, onSettle }) {
             <button disabled={cart.length === 0} onClick={() => handlePay('CASH')} className="btn-staff" style={{ flex: 1, background: '#00cc52', color: '#000', padding: '14px', opacity: cart.length === 0 ? 0.5 : 1 }}>
               💵 Cash Pay
             </button>
-            <button disabled={cart.length === 0} onClick={() => handlePay('CARD')} className="btn-staff" style={{ flex: 1, background: '#635bff', padding: '14px', opacity: cart.length === 0 ? 0.5 : 1 }}>
-              💳 Card
-            </button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button disabled={cart.length === 0} onClick={async () => {
+                if (terminalProvider === 'MERCADOPAGO') {
+                  try {
+                    await fetch(`https://api.mercadopago.com/point/integration-api/devices/${terminalId}/payment-intents`, {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${localStorage.getItem('mp_token') || 'TEST_TOKEN'}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount: cartTotal, description: "MerchantGo Order" })
+                    });
+                  } catch (e) { alert("MP Point API Error: " + e.message); return; }
+                } else if (terminalProvider === 'CLIP') {
+                  try {
+                    await fetch(`https://api.clip.mx/v1/payment-requests`, {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${localStorage.getItem('clip_token') || 'TEST_TOKEN'}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount: cartTotal, reference: "MerchantGo" })
+                    });
+                  } catch (e) { alert("Clip API Error: " + e.message); return; }
+                }
+                handlePay('CARD');
+              }} className="btn-staff" style={{ background: '#635bff', padding: '14px', opacity: cart.length === 0 ? 0.5 : 1 }}>
+                💳 Card ({terminalProvider === 'NONE' ? 'Manual' : terminalProvider})
+              </button>
+              <select value={terminalProvider} onChange={e => { setTerminalProvider(e.target.value); localStorage.setItem('terminal_provider', e.target.value); }} style={{ padding: '6px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-glass)', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <option value="NONE">💡 Connect a Terminal...</option>
+                <option value="CLIP">Clip Terminal</option>
+                <option value="MERCADOPAGO">MercadoPago Point</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

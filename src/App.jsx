@@ -117,6 +117,7 @@ export default function App() {
   const [shiftPin, setShiftPin] = useState('');
   const [shiftError, setShiftError] = useState('');
   const [accounts, setAccounts] = useState([]);
+  const [selectedStaffForOrders, setSelectedStaffForOrders] = useState(null);
   const [menuItems, setMenuItems] = useState(() => getLocalCatalog());
   const [menuName, setMenuName] = useState('');
   const [menuCategory, setMenuCategory] = useState('');
@@ -463,57 +464,86 @@ export default function App() {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '26px' }}>
-              {accounts.map((acc) => (
-                <div key={acc.id} className="glass-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: acc.status === 'READY_TO_PAY' ? '4px solid var(--accent-success)' : '4px solid var(--primary)' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', padding: '4px 12px', background: 'var(--border-glass)', borderRadius: '8px', fontFamily: 'Outfit' }}>
-                        {acc.id}
-                      </span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: acc.status === 'READY_TO_PAY' ? 'var(--accent-success)' : 'var(--primary)' }}>
-                        {acc.status} • {acc.time}
-                      </span>
+            {/* Ponytail: Staff vs Cashier split view for Accounts */}
+            {['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) && !selectedStaffForOrders ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                {Array.from(new Set(accounts.map(a => a.server))).map(staffName => {
+                  const staffOrders = accounts.filter(a => a.server === staffName);
+                  const total = staffOrders.reduce((s, a) => s + a.total, 0);
+                  return (
+                    <div key={staffName} onClick={() => setSelectedStaffForOrders(staffName)} className="glass-box" style={{ cursor: 'pointer', padding: '24px', borderTop: '4px solid var(--primary)', transition: 'transform 0.1s' }} onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'} onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
+                      <h3 style={{ fontSize: '1.4rem', marginBottom: '4px' }}>{staffName}</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>Role: Floor Staff</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ background: 'var(--glass-overlay)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.85rem' }}>{staffOrders.length} active orders</span>
+                        <strong style={{ color: 'var(--accent-success)', fontSize: '1.2rem' }}>${total.toFixed(2)}</strong>
+                      </div>
                     </div>
+                  );
+                })}
+                {accounts.length === 0 && <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No active orders on the floor.</div>}
+              </div>
+            ) : (
+              <>
+                {['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) && selectedStaffForOrders && (
+                  <button onClick={() => setSelectedStaffForOrders(null)} className="btn-secondary" style={{ marginBottom: '24px', padding: '8px 16px' }}>← Back to Staff Grid</button>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '26px' }}>
+                  {(['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) ? accounts.filter(a => a.server === selectedStaffForOrders) : accounts.filter(a => a.server === session?.name)).map((acc) => (
+                    <div key={acc.id} className="glass-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: acc.status === 'READY_TO_PAY' ? '4px solid var(--accent-success)' : '4px solid var(--primary)' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', padding: '4px 12px', background: 'var(--border-glass)', borderRadius: '8px', fontFamily: 'Outfit' }}>
+                            {acc.id}
+                          </span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: acc.status === 'READY_TO_PAY' ? 'var(--accent-success)' : 'var(--primary)' }}>
+                            {acc.status} • {acc.time}
+                          </span>
+                        </div>
 
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>
-                      Assigned Waitstaff: <strong style={{ color: 'var(--text-main)' }}>{acc.server}</strong>
-                    </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>
+                          Assigned Waitstaff: <strong style={{ color: 'var(--text-main)' }}>{acc.server}</strong>
+                        </div>
 
-                    <div style={{ background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', marginBottom: '20px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '8px' }}>Line Item Orders</span>
-                      <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.92rem', color: '#ddd' }}>
-                        {acc.items.map((i, idx) => (
-                          <li key={idx} onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', background: 'var(--glass-overlay)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>▪ {i}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)', fontWeight: 800, padding: '2px 8px', background: 'rgba(0,255,102,0.1)', borderRadius: '4px' }}>+ MOD</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                        <div style={{ background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', marginBottom: '20px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '8px' }}>Line Item Orders</span>
+                          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.92rem', color: '#ddd' }}>
+                            {acc.items.map((i, idx) => (
+                              <li key={idx} onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', background: 'var(--glass-overlay)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>▪ {i}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)', fontWeight: 800, padding: '2px 8px', background: 'rgba(0,255,102,0.1)', borderRadius: '4px' }}>+ MOD</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
 
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px', paddingTop: '14px', borderTop: '1px solid var(--glass-overlay-hover)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Amount Due:</span>
-                      <span style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-main)' }}>${acc.total.toFixed(2)}</span>
-                    </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px', paddingTop: '14px', borderTop: '1px solid var(--glass-overlay-hover)' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Amount Due (No Tip Included):</span>
+                          <span style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-main)' }}>${acc.total.toFixed(2)}</span>
+                        </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <button disabled={!can('SETTLE_ORDER')} onClick={() => settleAccount(acc.id, 'CASH')} className="btn-pos" style={{ padding: '14px', fontSize: '0.95rem', background: '#00cc52', color: '#000', opacity: can('SETTLE_ORDER') ? 1 : 0.5 }}>
-                        💵 Cash Settle
-                      </button>
-                      <button disabled={!can('SETTLE_ORDER')} onClick={() => settleAccount(acc.id, 'CARD')} className="btn-pos" style={{ padding: '14px', fontSize: '0.95rem', opacity: can('SETTLE_ORDER') ? 1 : 0.5 }}>
-                        💳 Card Terminal
-                      </button>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <button disabled={!can('SETTLE_ORDER')} onClick={() => settleAccount(acc.id, 'CASH')} className="btn-pos" style={{ padding: '14px', fontSize: '0.95rem', background: '#00cc52', color: '#000', opacity: can('SETTLE_ORDER') ? 1 : 0.5 }}>
+                            💵 Cash Settle
+                          </button>
+                          <button disabled={!can('SETTLE_ORDER')} onClick={() => settleAccount(acc.id, 'CARD')} className="btn-pos" style={{ padding: '14px', fontSize: '0.95rem', opacity: can('SETTLE_ORDER') ? 1 : 0.5 }}>
+                            💳 Card Terminal
+                          </button>
+                        </div>
+                        <button disabled={!can('TRANSFER_ORDER')} onClick={() => transferAccount(acc.id)} className="btn-secondary" style={{ width: '100%', marginTop: '10px', fontSize: '0.8rem', padding: '10px', opacity: can('TRANSFER_ORDER') ? 1 : 0.5 }}>
+                          <ArrowLeftRight size={14} /> Transfer Table Account
+                        </button>
+                      </div>
                     </div>
-                    <button disabled={!can('TRANSFER_ORDER')} onClick={() => transferAccount(acc.id)} className="btn-secondary" style={{ width: '100%', marginTop: '10px', fontSize: '0.8rem', padding: '10px', opacity: can('TRANSFER_ORDER') ? 1 : 0.5 }}>
-                      <ArrowLeftRight size={14} /> Transfer Table Account
-                    </button>
-                  </div>
+                  ))}
+                  {((['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) ? accounts.filter(a => a.server === selectedStaffForOrders) : accounts.filter(a => a.server === session?.name)).length === 0) && (
+                    <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>You have no active orders.</div>
+                  )}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         )}
 

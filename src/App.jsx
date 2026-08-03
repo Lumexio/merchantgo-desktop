@@ -52,7 +52,7 @@ const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
           {availableExtras.map((ex, idx) => {
             const isSelected = selectedExtras.some(e => e.name === ex.name);
             return (
-              <div key={idx} onClick={() => toggleExtra(ex)} style={{ padding: '16px', borderRadius: '12px', background: isSelected ? 'rgba(0, 179, 104, 0.15)' : 'rgba(255,255,255,0.04)', border: isSelected ? '2px solid #00b368' : '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <div key={idx} onClick={() => toggleExtra(ex)} style={{ padding: '16px', borderRadius: '12px', background: isSelected ? 'rgba(0, 179, 104, 0.15)' : 'var(--glass-overlay)', border: isSelected ? '2px solid #00b368' : '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}>
                 <span style={{ color: ex.alert ? 'var(--accent-error)' : 'var(--text-main)' }}>{ex.name}</span>
                 <span style={{ color: '#00b368' }}>{ex.price > 0 ? `+$${ex.price.toFixed(2)}` : 'FREE'}</span>
               </div>
@@ -271,21 +271,21 @@ export default function App() {
   if (isFirstLaunch) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#0a0c10', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: 'rgba(24, 25, 33, 0.75)', padding: '40px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+        <div style={{ background: 'rgba(24, 25, 33, 0.75)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border-glass)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
           <h1 style={{ fontSize: '2.4rem', marginBottom: '8px', color: 'var(--accent-success)' }}>MerchantGo</h1>
           <p style={{ color: '#9496a3', marginBottom: '32px' }}>Desktop Enterprise KDS & Register</p>
           {connectionError && <p style={{ color: 'var(--accent-error)', marginBottom: '16px' }}>{connectionError}</p>}
           
           {!isSettingUpOffline ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <input type="email" placeholder="Owner email" value={email} onChange={event => setEmail(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} />
-              <input type="password" placeholder="Password" value={password} onChange={event => setPassword(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} />
+              <input type="email" placeholder="Owner email" value={email} onChange={event => setEmail(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} />
+              <input type="password" placeholder="Password" value={password} onChange={event => setPassword(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} />
               <button style={{ padding: '14px', borderRadius: '8px', border: 'none', background: 'var(--accent-success)', color: '#000', fontWeight: 700 }} onClick={connectAccount}>
                 Sign In to MerchantGo
               </button>
               <div style={{ fontSize: '0.75rem', color: '#9496a3' }}>or use a configured paid staff station PIN</div>
-              <input type="password" inputMode="numeric" placeholder="Staff PIN" value={cloudPin} onChange={event => setCloudPin(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} />
-              <button style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} onClick={connectCloudStation}>
+              <input type="password" inputMode="numeric" placeholder="Staff PIN" value={cloudPin} onChange={event => setCloudPin(event.target.value)} style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} />
+              <button style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} onClick={connectCloudStation}>
                 Connect Cloud Station
               </button>
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '8px 0' }} />
@@ -296,12 +296,12 @@ export default function App() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <h2 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Create Local Admin</h2>
-              <input type="text" placeholder="Admin Name (e.g. Boss)" value={localAdminName} onChange={e => setLocalAdminName(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} />
+              <input type="text" placeholder="Admin Name (e.g. Boss)" value={localAdminName} onChange={e => setLocalAdminName(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} />
               <select value={localMode} onChange={event => setLocalMode(event.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#14171e', color: 'var(--text-main)' }}>
                 <option value="SOLO_FOOD_TRUCK">Solo Food Truck</option>
                 <option value="MULTI_STATION_BAR">Multi-station Restaurant / Bar</option>
               </select>
-              <input type="password" inputMode="numeric" placeholder="4 digit staff PIN" value={localAdminPin} onChange={event => setLocalAdminPin(event.target.value.replace(/\D/g, '').slice(0, 4))} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'var(--text-main)' }} />
+              <input type="password" inputMode="numeric" placeholder="4 digit staff PIN" value={localAdminPin} onChange={event => setLocalAdminPin(event.target.value.replace(/\D/g, '').slice(0, 4))} style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--bg-input)', color: 'var(--text-main)' }} />
               <button style={{ padding: '14px', borderRadius: '8px', border: 'none', background: 'var(--accent-success)', color: '#000', fontWeight: 600, marginTop: '8px', cursor: 'pointer' }} onClick={async () => {
                 try {
                   setConnectionError(null);
@@ -339,14 +339,14 @@ export default function App() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       {/* TERMINAL HEADER */}
-      <header style={{ borderBottom: '1px solid var(--border-glass)', padding: '16px 24px', backgroundColor: 'rgba(12,13,18,0.95)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ borderBottom: '1px solid var(--border-glass)', padding: '16px 24px', backgroundColor: 'var(--header-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), #993d00)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontWeight: 800, fontSize: '1.4rem', boxShadow: '0 4px 15px rgba(255, 107, 0, 0.4)' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), #993d00)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontWeight: 800, fontSize: '1.4rem', boxShadow: '0 4px 15px rgba(var(--primary-rgb, 255, 107, 0), 0.4)' }}>
             D
           </div>
           <div>
             <span style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'Outfit', display: 'block' }}>
-              MERCHANT<span style={{ color: 'var(--primary)' }}>GO</span> <span style={{ fontSize: '0.65rem', backgroundColor: 'rgba(255, 107, 0, 0.15)', color: 'var(--primary)', padding: '3px 8px', borderRadius: '6px' }}>ELECTRON DESKTOP POS</span>
+              MERCHANT<span style={{ color: 'var(--primary)' }}>GO</span> <span style={{ fontSize: '0.65rem', backgroundColor: 'rgba(var(--primary-rgb, 255, 107, 0), 0.15)', color: 'var(--primary)', padding: '3px 8px', borderRadius: '6px' }}>ELECTRON DESKTOP POS</span>
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Console User: <strong>{session?.name} ({session?.role})</strong> • Plan: <strong>{session?.plan}</strong></span>
           </div>
@@ -373,7 +373,7 @@ export default function App() {
           {['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) && (
             <select
               onChange={(e) => document.documentElement.setAttribute('data-theme', e.target.value)}
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', padding: '8px 14px', borderRadius: '12px', fontSize: '0.85rem', outline: 'none' }}
+              style={{ background: 'var(--border-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', padding: '8px 14px', borderRadius: '12px', fontSize: '0.85rem', outline: 'none' }}
               title="Theme (Ponytail mode: minimal CSS-based themes)"
             >
               <option value="dark-default">Dark (Default)</option>
@@ -431,7 +431,7 @@ export default function App() {
                   Select an account initiated via waitstaff shared PIN tablets to process cash or card terminal checkouts.
                 </p>
               </div>
-              <span style={{ fontSize: '0.9rem', padding: '8px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', color: 'var(--accent-success)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.9rem', padding: '8px 16px', background: 'var(--glass-overlay)', borderRadius: '10px', color: 'var(--accent-success)', fontWeight: 700 }}>
                 ● Real-Time WebSocket Listener Active
               </span>
             </div>
@@ -441,7 +441,7 @@ export default function App() {
                 <div key={acc.id} className="glass-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: acc.status === 'READY_TO_PAY' ? '4px solid var(--accent-success)' : '4px solid var(--primary)' }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', padding: '4px 12px', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', fontFamily: 'Outfit' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', padding: '4px 12px', background: 'var(--border-glass)', borderRadius: '8px', fontFamily: 'Outfit' }}>
                         {acc.id}
                       </span>
                       <span style={{ fontSize: '0.8rem', fontWeight: 800, color: acc.status === 'READY_TO_PAY' ? 'var(--accent-success)' : 'var(--primary)' }}>
@@ -453,11 +453,11 @@ export default function App() {
                       Assigned Waitstaff: <strong style={{ color: 'var(--text-main)' }}>{acc.server}</strong>
                     </div>
 
-                    <div style={{ background: 'rgba(0,0,0,0.4)', padding: '14px', borderRadius: '12px', marginBottom: '20px' }}>
+                    <div style={{ background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', marginBottom: '20px' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '8px' }}>Line Item Orders</span>
                       <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.92rem', color: '#ddd' }}>
                         {acc.items.map((i, idx) => (
-                          <li key={idx} onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}>
+                          <li key={idx} onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', background: 'var(--glass-overlay)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}>
                             <span>▪ {i}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)', fontWeight: 800, padding: '2px 8px', background: 'rgba(0,255,102,0.1)', borderRadius: '4px' }}>+ MOD</span>
                           </li>
@@ -467,7 +467,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px', paddingTop: '14px', borderTop: '1px solid var(--glass-overlay-hover)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Amount Due:</span>
                       <span style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-main)' }}>${acc.total.toFixed(2)}</span>
                     </div>
@@ -536,11 +536,11 @@ export default function App() {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '32px' }}>
-              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '20px', borderRadius: '14px' }}>
+              <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '14px' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', textTransform: 'uppercase', marginBottom: '6px' }}>Current Cash Float</span>
                 <strong style={{ fontSize: '2.4rem', color: 'var(--accent-success)', fontFamily: 'Outfit' }}>$4,120.50 MXN</strong>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '20px', borderRadius: '14px' }}>
+              <div style={{ background: 'var(--bg-input)', padding: '20px', borderRadius: '14px' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', textTransform: 'uppercase', marginBottom: '6px' }}>Drawer Lock State</span>
                 <strong style={{ fontSize: '2rem', color: drawerOpen ? 'var(--accent-success)' : 'var(--primary)', fontFamily: 'Outfit', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {drawerOpen ? '🔓 UNLOCKED' : '🔒 LOCKED'}
@@ -595,7 +595,7 @@ export default function App() {
 
             {/* Generated Ticket output */}
             {lastZReport && (
-              <div className="glass-box" style={{ border: '2px solid var(--accent-success)', background: 'rgba(10, 26, 18, 0.9)', padding: '36px', animation: 'fadeIn 0.4s' }}>
+              <div className="glass-box" style={{ border: '2px solid var(--accent-success)', background: 'var(--bg-card)', padding: '36px', animation: 'fadeIn 0.4s' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '18px', marginBottom: '22px' }}>
                   <div>
                     <span style={{ color: 'var(--accent-success)', fontWeight: 800, fontSize: '0.85rem', display: 'block' }}>✔ Z-REPORT TICKET #{lastZReport.id} GENERATED</span>
@@ -607,19 +607,19 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ background: 'rgba(0,0,0,0.4)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', textTransform: 'uppercase' }}>Gross Revenue</span>
                     <strong style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>{lastZReport.gross_sales}</strong>
                   </div>
-                  <div style={{ background: 'rgba(0,0,0,0.4)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', textTransform: 'uppercase' }}>Cash Collected</span>
                     <strong style={{ fontSize: '1.5rem', color: 'var(--accent-success)' }}>{lastZReport.cash_collected}</strong>
                   </div>
-                  <div style={{ background: 'rgba(0,0,0,0.4)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', textTransform: 'uppercase' }}>Card Terminal</span>
                     <strong style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>{lastZReport.card_settled}</strong>
                   </div>
-                  <div style={{ background: 'rgba(0,0,0,0.4)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', textTransform: 'uppercase' }}>Staff Tips Pool</span>
                     <strong style={{ fontSize: '1.5rem', color: '#ffb800' }}>{lastZReport.waiter_tips_pool}</strong>
                   </div>

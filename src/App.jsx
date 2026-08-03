@@ -10,6 +10,7 @@ import {
   settleCloudOrder,
   transferCloudOrder,
 } from './api/kdsService';
+import RegisterView from './RegisterView';
 import {
   addLocalMenuItem,
   authenticateLocalPin,
@@ -22,6 +23,7 @@ import {
   removeLocalMenuItem,
   settleLocalOrder,
   startLocalShift,
+  createLocalOrder,
 } from './localPos';
 
 const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
@@ -106,7 +108,7 @@ export default function App() {
   
   const [activeDesktopMod, setActiveDesktopMod] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('accounts');
+  const [activeTab, setActiveTab] = useState('register');
   const [printerStatus, setPrinterStatus] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lastZReport, setLastZReport] = useState(null);
@@ -353,6 +355,9 @@ export default function App() {
         </div>
 
         <nav style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={() => setActiveTab('register')} className={activeTab === 'register' ? 'btn-pos' : 'btn-secondary'} style={{ padding: '10px 20px', fontSize: '0.9rem' }}>
+            ⚡ Register (POS)
+          </button>
           <button onClick={() => setActiveTab('accounts')} className={activeTab === 'accounts' ? 'btn-pos' : 'btn-secondary'} style={{ padding: '10px 20px', fontSize: '0.9rem' }}>
             Active Floor Accounts ({accounts.length})
           </button>
@@ -412,6 +417,28 @@ export default function App() {
       {/* MAIN VIEW CONTENT */}
       <main style={{ flex: 1, padding: '40px 32px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
         
+        {/* TAB 0: REGISTER */}
+        {activeTab === 'register' && (
+          <RegisterView 
+            menuItems={menuItems} 
+            session={session}
+            onSettle={({ items, total, method }) => {
+              try {
+                if (session?.offline) {
+                  const order = createLocalOrder('Express Counter', total, items.map(i => `${i.name} x${i.qty}`));
+                  settleLocalOrder(order.id, method);
+                } else {
+                  alert("Cloud express settle is mock only on desktop");
+                }
+                if (method === 'CASH') handleOpenDrawer();
+                else alert(`Card terminal payment for $${total} completed.`);
+              } catch (e) {
+                alert(e.message);
+              }
+            }}
+          />
+        )}
+
         {/* TAB 1: ACCOUNTS SETTLEMENT */}
         {activeTab === 'accounts' && (
           <div>

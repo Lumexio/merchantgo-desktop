@@ -119,6 +119,7 @@ export default function App() {
   const [menuName, setMenuName] = useState('');
   const [menuCategory, setMenuCategory] = useState('');
   const [menuPrice, setMenuPrice] = useState('');
+  const [isIngredient, setIsIngredient] = useState(false);
 
   useEffect(() => {
     // Listen to simulated Electron IPC signals if inside desktop executable
@@ -368,7 +369,19 @@ export default function App() {
           )}
         </nav>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) && (
+            <select
+              onChange={(e) => document.documentElement.setAttribute('data-theme', e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-glass)', color: '#fff', padding: '8px 14px', borderRadius: '12px', fontSize: '0.85rem', outline: 'none' }}
+              title="Theme (Ponytail mode: minimal CSS-based themes)"
+            >
+              <option value="dark-default">Dark (Default)</option>
+              <option value="light-default">Light</option>
+              <option value="dark-ocean">Ocean</option>
+              <option value="light-warm">Warm</option>
+            </select>
+          )}
           {session?.offline && (
             <button onClick={() => setShiftModalOpen(true)} className="btn-secondary" style={{ padding: '8px 14px', color: localShift ? '#00ff66' : '#ffb800' }}>
               {localShift ? `✓ Shift: ${localShift.staffName}` : 'Start staff shift'}
@@ -481,20 +494,25 @@ export default function App() {
           <div className="glass-box" style={{ maxWidth: '900px', margin: '0 auto', padding: '36px' }}>
             <h1 style={{ marginBottom: '8px' }}>Offline Menu Setup</h1>
             <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Add only the items this business sells. They remain local until you explicitly sync them.</p>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <button onClick={() => setIsIngredient(false)} className={!isIngredient ? 'btn-pos' : 'btn-secondary'} style={{ flex: 1, padding: '10px' }}>Menu Item</button>
+              <button onClick={() => setIsIngredient(true)} className={isIngredient ? 'btn-pos' : 'btn-secondary'} style={{ flex: 1, padding: '10px' }}>Ingredient</button>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '24px' }}>
-              <input value={menuName} onChange={event => setMenuName(event.target.value)} placeholder="Item name" style={menuInputStyle} />
+              <input value={menuName} onChange={event => setMenuName(event.target.value)} placeholder={isIngredient ? 'Ingredient name' : 'Item name'} style={menuInputStyle} />
               <input value={menuCategory} onChange={event => setMenuCategory(event.target.value)} placeholder="Category" style={menuInputStyle} />
-              <input type="number" min="0.01" step="0.01" value={menuPrice} onChange={event => setMenuPrice(event.target.value)} placeholder="Price" style={menuInputStyle} />
+              <input type="number" min="0" step="0.01" value={menuPrice} onChange={event => setMenuPrice(event.target.value)} placeholder={isIngredient ? 'Cost (optional)' : 'Price'} style={menuInputStyle} />
               <button onClick={() => {
                 try {
-                  setMenuItems(addLocalMenuItem(menuName, menuCategory, Number(menuPrice)));
+                  // ponytail: minimal type forwarding
+                  setMenuItems(addLocalMenuItem(menuName, menuCategory, Number(menuPrice) || 0, isIngredient ? 'INGREDIENT' : 'ITEM'));
                   setMenuName('');
                   setMenuPrice('');
                   setConnectionError(null);
                 } catch (error) {
                   setConnectionError(error.message);
                 }
-              }} className="btn-pos" style={{ padding: '12px 18px' }}>Add item</button>
+              }} className="btn-pos" style={{ padding: '12px 18px' }}>Add {isIngredient ? 'Ingredient' : 'item'}</button>
             </div>
             {menuItems.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', border: '1px dashed rgba(255,255,255,.2)', borderRadius: '12px', color: 'var(--text-muted)' }}>
@@ -502,7 +520,7 @@ export default function App() {
               </div>
             ) : menuItems.map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
-                <span><strong>{item.name}</strong> · {item.category} · ${Number(item.price).toFixed(2)}</span>
+                <span><strong>{item.name}</strong> · {item.category} · ${Number(item.price).toFixed(2)} {item.type === 'INGREDIENT' && <span style={{color: '#ffb800'}}>[INGREDIENT]</span>}</span>
                 <button onClick={() => setMenuItems(removeLocalMenuItem(item.id))} className="btn-secondary">Remove</button>
               </div>
             ))}

@@ -174,6 +174,19 @@ export default function App() {
     };
   }, [session]);
 
+  // ponytail: Prevent closing app if offline queue is pending
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const queue = JSON.parse(localStorage.getItem('pos_offline_queue') || '[]');
+      if (queue.length > 0) {
+        e.preventDefault();
+        e.returnValue = 'You have unsynced offline orders! Please go online before closing.';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const handlePrintTicket = (ticketData) => {
     if (window.merchantGoIPC) {
       window.merchantGoIPC.send('print-ticket', ticketData || { ticket_id: 'Z-FULL-2026', total: '$249.70' });
@@ -248,10 +261,19 @@ export default function App() {
 
   const settleAccount = async (id, method) => {
     if (!can('SETTLE_ORDER')) return;
+    
+    // ponytail: The Human Webhook pattern. Instead of building complex infrastructure, we pause execution
+    // and force the cashier to visually verify the terminal screen before wiping the order from the system.
+    if (method === 'CARD') {
+      const approved = window.confirm(`Please process the card payment for Table ${id.slice(0, 8)} on the physical terminal. Did the terminal approve the payment?`);
+      if (!approved) return;
+    }
+    
     try {
       if (session?.token) await settleCloudOrder(session.token, id, method);
       else if (session?.offline) {
         if (!localShift) throw new Error('Start a staff shift before settling accounts');
+        // ponytail: No CRDT conflict resolution. Last write wins. Waitstaff can talk to each other to resolve table conflicts.
         settleLocalOrder(id, method);
       }
       setAccounts(accounts.filter(account => account.id !== id));

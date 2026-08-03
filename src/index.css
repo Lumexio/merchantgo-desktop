@@ -2,18 +2,18 @@
 
 :root, [data-theme="dark-default"] {
   --primary-rgb: 255, 107, 0;
-  --nav-bg: var(--nav-bg);
-  --header-bg: var(--header-bg);
-  --glass-overlay: var(--glass-overlay);
+  --nav-bg: rgba(12, 13, 18, 0.97);
+  --header-bg: rgba(12, 13, 18, 0.95);
+  --glass-overlay: rgba(255, 255, 255, 0.05);
   --glass-overlay-hover: rgba(255, 255, 255, 0.1);
-  --bg-input: var(--bg-input);
+  --bg-input: rgba(0, 0, 0, 0.4);
   --primary: #ff6b00;
   --primary-hover: #ff852e;
   --accent-error: #ff8585;
   --accent-success: #00ff66;
   --bg-dark: #090a0e;
   --bg-panel: rgba(22, 23, 31, 0.85);
-  --border-glass: var(--border-glass);
+  --border-glass: rgba(255, 255, 255, 0.08);
   --text-main: #f2f3f7;
   --text-muted: #9496a3;
   --radius-md: 12px;
@@ -42,9 +42,9 @@
   --primary-rgb: 0, 168, 255;
   --nav-bg: rgba(9, 20, 40, 0.97);
   --header-bg: rgba(9, 20, 40, 0.95);
-  --glass-overlay: var(--glass-overlay);
+  --glass-overlay: rgba(255, 255, 255, 0.05);
   --glass-overlay-hover: rgba(255, 255, 255, 0.1);
-  --bg-input: var(--bg-input);
+  --bg-input: rgba(0, 0, 0, 0.4);
   --primary: #00a8ff;
   --primary-hover: #0097e6;
   --accent-error: #ff8585;

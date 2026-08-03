@@ -173,6 +173,35 @@ export function settleLocalOrder(orderId, paymentMethod) {
     : entry));
 }
 
+export function getLocalCatalog() {
+  return read(CATALOG_KEY, []);
+}
+
+export function addLocalMenuItem(name, category, price) {
+  const local = requireConfig();
+  const items = getLocalCatalog();
+  if (!name.trim()) throw new Error('Menu item name is required');
+  if (!Number.isFinite(price) || price <= 0) throw new Error('Enter a price greater than zero');
+  if (items.length >= 25) throw new Error('Free offline menus support up to 25 items');
+  const next = [...items, {
+    id: `ITEM-${Date.now().toString(36).toUpperCase()}`,
+    deviceId: local.deviceId,
+    revision: 1,
+    name: name.trim(),
+    category: category.trim() || 'Menu',
+    price,
+    active: true,
+  }];
+  write(CATALOG_KEY, next);
+  return next;
+}
+
+export function removeLocalMenuItem(id) {
+  const next = getLocalCatalog().filter(item => item.id !== id);
+  write(CATALOG_KEY, next);
+  return next;
+}
+
 export function closeLocalShift() {
   const local = requireConfig();
   const shift = getLocalShift();
@@ -216,7 +245,7 @@ export function createLocalSnapshot() {
     deviceId: local.deviceId,
     exportedAt: new Date().toISOString(),
     data: {
-      menuItems: read(CATALOG_KEY, []),
+      menuItems: getLocalCatalog(),
       branches: [{ id: 'branch_root', deviceId: local.deviceId, revision: 1, name: local.businessName }],
       staffProfiles: local.staff.map(({ pinHash: _pinHash, ...staff }) => staff),
       orders: read(ORDERS_KEY, []).filter(order => Boolean(order.closedShiftId)),

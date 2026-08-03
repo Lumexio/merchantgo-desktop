@@ -11,15 +11,15 @@ import {
   transferCloudOrder,
 } from './api/kdsService';
 import {
-  addLocalStaff,
+  addLocalMenuItem,
   authenticateLocalPin,
   closeLocalShift,
   createLocalAdmin,
-  createLocalOrder,
+  getLocalCatalog,
   getLocalShift,
-  getLocalMode,
   hasLocalRegister,
   listLocalOrders,
+  removeLocalMenuItem,
   settleLocalOrder,
   startLocalShift,
 } from './localPos';
@@ -106,7 +106,7 @@ export default function App() {
   
   const [activeDesktopMod, setActiveDesktopMod] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' | 'cashdrawer' | 'zreport'
+  const [activeTab, setActiveTab] = useState('accounts');
   const [printerStatus, setPrinterStatus] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lastZReport, setLastZReport] = useState(null);
@@ -115,6 +115,10 @@ export default function App() {
   const [shiftPin, setShiftPin] = useState('');
   const [shiftError, setShiftError] = useState('');
   const [accounts, setAccounts] = useState([]);
+  const [menuItems, setMenuItems] = useState(() => getLocalCatalog());
+  const [menuName, setMenuName] = useState('');
+  const [menuCategory, setMenuCategory] = useState('');
+  const [menuPrice, setMenuPrice] = useState('');
 
   useEffect(() => {
     // Listen to simulated Electron IPC signals if inside desktop executable
@@ -315,8 +319,19 @@ export default function App() {
     );
   }
 
+  const menuInputStyle = {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid rgba(255,255,255,.1)',
+    background: 'rgba(0,0,0,.35)',
+    color: '#fff',
+  };
+
   if (!session && hasLocalRegister()) {
-    return <LocalPinGate onAuthenticate={setSession} />;
+    return <LocalPinGate onAuthenticate={next => {
+      setActiveTab('accounts');
+      setSession(next);
+    }} />;
   }
 
   return (
@@ -346,6 +361,11 @@ export default function App() {
           <button onClick={() => setActiveTab('zreport')} className={activeTab === 'zreport' ? 'btn-pos' : 'btn-secondary'} style={{ padding: '10px 20px', fontSize: '0.9rem', backgroundColor: activeTab === 'zreport' ? '#00ff66' : '', color: activeTab === 'zreport' ? '#000' : '' }}>
             El Corte de Caja (Z-Report)
           </button>
+          {session?.offline && session?.role === 'ADMIN' && (
+            <button onClick={() => setActiveTab('menu')} className={activeTab === 'menu' ? 'btn-pos' : 'btn-secondary'} style={{ padding: '10px 20px', fontSize: '0.9rem' }}>
+              Menu ({menuItems.length})
+            </button>
+          )}
         </nav>
 
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -370,6 +390,11 @@ export default function App() {
           {drawerOpen ? '🔓 CASH DRAWER UNLOCKED & TILL ACCESSED' : printerStatus}
         </div>
       )}
+      {connectionError && (
+        <div style={{ padding: '10px 24px', background: 'rgba(255,77,77,.15)', color: '#ff8585', textAlign: 'center' }}>
+          {connectionError}
+        </div>
+      )}
 
       {/* MAIN VIEW CONTENT */}
       <main style={{ flex: 1, padding: '40px 32px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
@@ -377,6 +402,15 @@ export default function App() {
         {/* TAB 1: ACCOUNTS SETTLEMENT */}
         {activeTab === 'accounts' && (
           <div>
+            {session?.offline && menuItems.length === 0 && (
+              <div className="glass-box" style={{ padding: '24px', marginBottom: '28px', border: '1px dashed #00ff66', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px' }}>
+                <div>
+                  <strong style={{ color: '#00ff66' }}>1. Create your menu</strong>
+                  <p style={{ color: 'var(--text-muted)', marginTop: '6px' }}>This fresh offline terminal starts empty. Add the food and drinks you sell before opening your first account.</p>
+                </div>
+                <button onClick={() => setActiveTab('menu')} className="btn-pos" style={{ padding: '12px 18px' }}>Open Menu Setup</button>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
               <div>
                 <h1 style={{ fontSize: '2.5rem', marginBottom: '6px' }}>Table Account Settlement Console</h1>
@@ -440,6 +474,38 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'menu' && session?.offline && session?.role === 'ADMIN' && (
+          <div className="glass-box" style={{ maxWidth: '900px', margin: '0 auto', padding: '36px' }}>
+            <h1 style={{ marginBottom: '8px' }}>Offline Menu Setup</h1>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Add only the items this business sells. They remain local until you explicitly sync them.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '24px' }}>
+              <input value={menuName} onChange={event => setMenuName(event.target.value)} placeholder="Item name" style={menuInputStyle} />
+              <input value={menuCategory} onChange={event => setMenuCategory(event.target.value)} placeholder="Category" style={menuInputStyle} />
+              <input type="number" min="0.01" step="0.01" value={menuPrice} onChange={event => setMenuPrice(event.target.value)} placeholder="Price" style={menuInputStyle} />
+              <button onClick={() => {
+                try {
+                  setMenuItems(addLocalMenuItem(menuName, menuCategory, Number(menuPrice)));
+                  setMenuName('');
+                  setMenuPrice('');
+                  setConnectionError(null);
+                } catch (error) {
+                  setConnectionError(error.message);
+                }
+              }} className="btn-pos" style={{ padding: '12px 18px' }}>Add item</button>
+            </div>
+            {menuItems.length === 0 ? (
+              <div style={{ padding: '32px', textAlign: 'center', border: '1px dashed rgba(255,255,255,.2)', borderRadius: '12px', color: 'var(--text-muted)' }}>
+                No menu items yet. Add your first product above.
+              </div>
+            ) : menuItems.map(item => (
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+                <span><strong>{item.name}</strong> · {item.category} · ${Number(item.price).toFixed(2)}</span>
+                <button onClick={() => setMenuItems(removeLocalMenuItem(item.id))} className="btn-secondary">Remove</button>
+              </div>
+            ))}
           </div>
         )}
 

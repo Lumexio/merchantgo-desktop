@@ -12,7 +12,7 @@
 
 | When changing | Also update or verify |
 | --- | --- |
-| Electron IPC | `public/electron.js`, `public/preload.js`, renderer caller/listener, validation, error handling, and tests |
+| Electron IPC | `public/electron.cjs`, `public/preload.cjs`, renderer caller/listener, validation, error handling, and tests |
 | Order or KDS event | `src/api/kdsService.js`, UI state, Socket.IO/API contract, reconnect/duplicate behavior, backend gateway, and mobile/web parity |
 | Payment or cashout | Totals/currency, permissions, audit expectations, printer output, backend contract, reporting, and tests |
 | Printer or filesystem behavior | Main/preload boundary, path/input validation, permissions, failure recovery, packaging, and platform smoke tests |

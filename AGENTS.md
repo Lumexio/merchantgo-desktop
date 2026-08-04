@@ -3,8 +3,8 @@
 ## Purpose and structure
 
 This React 19/Vite Electron client is the MerchantGo cashier and kitchen
-display application. `public/electron.js` owns the main process,
-`public/preload.js` owns the renderer bridge, `src/api/kdsService.js` owns KDS
+display application. `public/electron.cjs` owns the main process,
+`public/preload.cjs` owns the renderer bridge, `src/api/kdsService.js` owns KDS
 data access, and `src/App.jsx` owns the current UI.
 
 ## Commands

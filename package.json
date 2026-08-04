@@ -8,10 +8,12 @@
     "email": "fsmsoftdev@gmail.com"
   },
   "type": "module",
-  "main": "public/electron.js",
+  "main": "public/electron.cjs",
+  "repository": "https://github.com/Lumexio/merchantgo-desktop.git",
   "build": {
     "appId": "com.merchantgo.desktop",
     "productName": "MerchantGo KDS",
+    "publish": ["github"],
     "directories": {
       "output": "dist"
     },
@@ -29,6 +31,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

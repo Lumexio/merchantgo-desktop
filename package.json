@@ -13,15 +13,17 @@
   "build": {
     "appId": "com.merchantgo.desktop",
     "productName": "MerchantGo KDS",
-    "publish": ["github"],
+    "publish": [
+      "github"
+    ],
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "linux": {
       "target": "deb"
     },
     "win": {
-      "target": "nsis"
+      "target": "squirrel"
     }
   },
   "scripts": {
@@ -31,9 +33,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "update-electron-app": "^3.3.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

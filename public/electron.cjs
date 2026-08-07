@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const { autoUpdater } = require('electron-updater');
+require('update-electron-app')();
 const path = require('path');
 
 let mainWindow;
@@ -21,12 +21,14 @@ function createWindow() {
   });
 
   const devUrl = 'http://localhost:5173';
-  const prodPath = `file://${path.join(__dirname, '../dist/index.html')}`;
+  const prodPath = path.join(__dirname, '../dist/index.html');
   
   // Try loading local dev server or compiled production file
-  mainWindow.loadURL(process.env.VITE_DEV ? devUrl : prodPath).catch(() => {
-    mainWindow.loadURL(prodPath);
-  });
+  if (process.env.VITE_DEV) {
+    mainWindow.loadURL(devUrl).catch(() => mainWindow.loadFile(prodPath));
+  } else {
+    mainWindow.loadFile(prodPath);
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -53,8 +55,6 @@ ipcMain.on('drawer-open', (event, cashierId) => {
 
 app.whenReady().then(() => {
   createWindow();
-  // ponytail: natively handles background downloads & install-on-quit for NSIS via GitHub releases
-  autoUpdater.checkForUpdatesAndNotify();
 });
 
 app.on('window-all-closed', () => {

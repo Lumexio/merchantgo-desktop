@@ -25,6 +25,7 @@ import {
   startLocalShift,
   createLocalOrder,
 } from './localPos';
+import OnboardingConfigModal from './components/OnboardingConfigModal.jsx';
 
 const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
   const [selectedExtras, setSelectedExtras] = useState([]);
@@ -770,6 +771,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <OnboardingConfigModal session={session} />
     </div>
   );
 }

@@ -11,4 +11,8 @@ export default defineConfig({
       transformIndexHtml: (html) => html.replace(/ crossorigin/g, '')
     }
   ],
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+  }
 })

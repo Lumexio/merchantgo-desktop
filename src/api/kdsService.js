@@ -52,10 +52,13 @@ export function transferCloudOrder(token, orderId, staffName) {
   });
 }
 
-export function settleCloudOrder(token, orderId, paymentMethod) {
+export function settleCloudOrder(token, orderOrId, paymentMethod) {
+  const body = typeof orderOrId === 'object' && orderOrId !== null
+    ? { paymentMethod, ...orderOrId }
+    : { orderId: orderOrId, paymentMethod };
   return request('/orders/settle', token, {
     method: 'POST',
-    body: JSON.stringify({ orderId, paymentMethod }),
+    body: JSON.stringify(body),
   });
 }
 

@@ -446,13 +446,17 @@ export default function App() {
           <RegisterView 
             menuItems={menuItems} 
             session={session}
-            onSettle={({ items, total, method }) => {
+            onSettle={async ({ items, total, method }) => {
               try {
                 if (session?.offline) {
                   const order = createLocalOrder('Express Counter', total, items.map(i => `${i.name} x${i.qty}`));
                   settleLocalOrder(order.id, method);
-                } else {
-                  alert("Cloud express settle is mock only on desktop");
+                } else if (session?.token) {
+                  await settleCloudOrder(session.token, {
+                    table: 'Express Counter',
+                    total,
+                    items: items.map(i => `${i.name} x${i.qty}`),
+                  }, method);
                 }
                 if (method === 'CASH') handleOpenDrawer();
                 else alert(`Card terminal payment for $${total} completed.`);

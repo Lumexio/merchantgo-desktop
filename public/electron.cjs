@@ -53,7 +53,10 @@ ipcMain.on('drawer-open', (event, cashierId) => {
   event.sender.send('drawer-status', { status: 'OPENED', timestamp: new Date().toISOString() });
 });
 
+const { db, initDatabase } = require('../src/main/database.cjs');
+
 app.whenReady().then(() => {
+  initDatabase();
   createWindow();
 });
 

@@ -142,6 +142,28 @@ export function listLocalOrders() {
   return read(ORDERS_KEY, []).filter(order => order.status === 'OPEN');
 }
 
+export function getLocalShiftStats() {
+  const shift = getLocalShift();
+  if (!shift) return { totalSales: 0, topWaiters: [] };
+  const allOrders = read(ORDERS_KEY, []);
+  const settledShiftOrders = allOrders.filter(o => o.status === 'SETTLED' && o.shiftId === shift.id);
+  
+  const totalSales = settledShiftOrders.reduce((sum, o) => sum + o.total, 0);
+  
+  const waiterMap = {};
+  for (const o of settledShiftOrders) {
+    if (!waiterMap[o.operatorName]) waiterMap[o.operatorName] = 0;
+    waiterMap[o.operatorName] += o.total;
+  }
+  
+  const topWaiters = Object.entries(waiterMap)
+    .map(([name, sales]) => ({ name, sales }))
+    .sort((a, b) => b.sales - a.sales)
+    .slice(0, 5);
+
+  return { totalSales, topWaiters };
+}
+
 export function createLocalOrder(table, total, items = []) {
   const local = requireConfig();
   const shift = getLocalShift();

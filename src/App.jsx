@@ -18,6 +18,7 @@ import {
   createLocalAdmin,
   getLocalCatalog,
   getLocalShift,
+  getLocalShiftStats,
   hasLocalRegister,
   listLocalOrders,
   removeLocalMenuItem,
@@ -117,6 +118,7 @@ export default function App() {
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [shiftPin, setShiftPin] = useState('');
   const [shiftError, setShiftError] = useState('');
+  const [shiftStats, setShiftStats] = useState(() => getLocalShiftStats());
   const [accounts, setAccounts] = useState([]);
   const [selectedStaffForOrders, setSelectedStaffForOrders] = useState(null);
   const [menuItems, setMenuItems] = useState(() => getLocalCatalog());
@@ -140,6 +142,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const handleKeydown = (e) => {
+      // F1=Help, F2=New Order, F5=Refresh, Esc=Cancel (partial US-8.2 implementation)
+      if (e.key === 'F2') { e.preventDefault(); setActiveTab('register'); }
+      if (e.key === 'F5') { e.preventDefault(); window.location.reload(); }
+      if (e.key === 'Escape') setActiveDesktopMod(null);
+    };
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
+
+  useEffect(() => {
     if (session?.offline) {
       setAccounts(listLocalOrders().map(order => ({
         ...order,
@@ -147,6 +160,7 @@ export default function App() {
         time: 'Local',
         items: order.items || [],
       })));
+      setShiftStats(getLocalShiftStats());
       return;
     }
     if (!session?.token) return;
@@ -276,6 +290,7 @@ export default function App() {
         if (!localShift) throw new Error('Start a staff shift before settling accounts');
         // ponytail: No CRDT conflict resolution. Last write wins. Waitstaff can talk to each other to resolve table conflicts.
         settleLocalOrder(id, method);
+        setShiftStats(getLocalShiftStats());
       }
       setAccounts(accounts.filter(account => account.id !== id));
       if (method === 'CASH') handleOpenDrawer();
@@ -451,6 +466,7 @@ export default function App() {
                 if (session?.offline) {
                   const order = createLocalOrder('Express Counter', total, items.map(i => `${i.name} x${i.qty}`));
                   settleLocalOrder(order.id, method);
+                  setShiftStats(getLocalShiftStats());
                 } else if (session?.token) {
                   await settleCloudOrder(session.token, {
                     table: 'Express Counter',
@@ -489,6 +505,25 @@ export default function App() {
               <span style={{ fontSize: '0.9rem', padding: '8px 16px', background: 'var(--glass-overlay)', borderRadius: '10px', color: 'var(--accent-success)', fontWeight: 700 }}>
                 ● Real-Time WebSocket Listener Active
               </span>
+            </div>
+
+            {/* CASHIER DASHBOARD (US-3.1 & US-3.2) */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '32px' }}>
+              <div className="glass-box" style={{ flex: 1, padding: '24px', background: 'linear-gradient(135deg, rgba(0, 255, 102, 0.05), transparent)' }}>
+                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Shift Total Sales</h3>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent-success)' }}>${shiftStats.totalSales.toFixed(2)}</div>
+              </div>
+              <div className="glass-box" style={{ flex: 2, padding: '24px' }}>
+                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase' }}>Top Waiters (Shift)</h3>
+                <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
+                  {shiftStats.topWaiters.length > 0 ? shiftStats.topWaiters.map((w, idx) => (
+                    <div key={idx} style={{ background: 'var(--glass-overlay)', padding: '12px 20px', borderRadius: '10px', minWidth: '140px' }}>
+                      <div style={{ fontWeight: 700 }}>#{idx + 1} {w.name}</div>
+                      <div style={{ color: 'var(--accent-success)', marginTop: '4px' }}>${w.sales.toFixed(2)}</div>
+                    </div>
+                  )) : <span style={{ color: 'var(--text-muted)' }}>No settled orders yet.</span>}
+                </div>
+              </div>
             </div>
 
             {/* Ponytail: Staff vs Cashier split view for Accounts */}

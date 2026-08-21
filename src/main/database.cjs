@@ -12,7 +12,7 @@ db.pragma('journal_mode = WAL');
 
 // Ponytail: One migration function instead of a complex migration framework. 
 function initDatabase() {
-  db.exec(\
+  db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -133,7 +133,7 @@ function initDatabase() {
       last_attempt_at DATETIME,
       status TEXT NOT NULL DEFAULT 'pending'
     );
-  \);
+  `);
 }
 
 module.exports = {

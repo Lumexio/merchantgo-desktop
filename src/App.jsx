@@ -79,9 +79,9 @@ const DesktopModifierModal = ({ item, onClose, onConfirm }) => {
 const LocalPinGate = ({ onAuthenticate }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const unlock = async () => {
+  const unlock = async (pinAttempt) => {
     try {
-      onAuthenticate(await authenticateLocalPin(pin));
+      onAuthenticate(await authenticateLocalPin(pinAttempt));
     } catch (caught) {
       setError(caught.message || 'Invalid local staff PIN');
       setPin('');
@@ -92,9 +92,21 @@ const LocalPinGate = ({ onAuthenticate }) => {
       <div className="glass-panel" style={{ width: '380px', padding: '36px', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '8px' }}>Terminal locked</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Enter your local staff PIN.</p>
-        <input autoFocus type="password" inputMode="numeric" value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} onKeyDown={event => event.key === 'Enter' && unlock()} placeholder="Staff PIN" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(0,0,0,.4)', color: 'var(--text-main)', marginBottom: '12px' }} />
+        <input 
+          autoFocus 
+          type="password" 
+          inputMode="numeric" 
+          value={pin} 
+          onChange={event => {
+            const newPin = event.target.value.replace(/\D/g, '').slice(0, 4);
+            setPin(newPin);
+            if (newPin.length === 4) unlock(newPin);
+          }} 
+          onKeyDown={event => event.key === 'Enter' && unlock(pin)} 
+          placeholder="Staff PIN" 
+          style={{ width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(0,0,0,.4)', color: 'var(--text-main)', marginBottom: '12px', textAlign: 'center', fontSize: '1.5rem', letterSpacing: '8px' }} 
+        />
         {error && <p style={{ color: 'var(--accent-error)', marginBottom: '12px' }}>{error}</p>}
-        <button onClick={unlock} className="btn-pos" style={{ width: '100%', padding: '14px' }}>Unlock terminal</button>
       </div>
     </div>
   );
@@ -926,7 +938,22 @@ export default function App() {
             <p style={{ color: 'var(--text-muted)', marginBottom: '18px' }}>
               {localShift ? `Started ${new Date(localShift.openedAt).toLocaleString()}. Generate a Z-report to end it.` : 'Enter your local staff PIN.'}
             </p>
-            {!localShift && <input autoFocus type="password" inputMode="numeric" value={shiftPin} onChange={event => setShiftPin(event.target.value.replace(/\D/g, '').slice(0, 8))} onKeyDown={async event => {
+            {!localShift && <input autoFocus type="password" inputMode="numeric" value={shiftPin} onChange={async event => {
+                const newPin = event.target.value.replace(/\D/g, '').slice(0, 4);
+                setShiftPin(newPin);
+                if (newPin.length === 4) {
+                  try {
+                    const next = await startLocalShift(newPin);
+                    setLocalShift(next);
+                    setShiftModalOpen(false);
+                    setShiftPin('');
+                    setShiftError('');
+                  } catch (error) {
+                    setShiftError(error.message);
+                    setShiftPin('');
+                  }
+                }
+              }} onKeyDown={async event => {
               if (event.key !== 'Enter') return;
               try {
                 const next = await startLocalShift(shiftPin);

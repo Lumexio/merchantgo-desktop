@@ -111,6 +111,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [session, setSession] = useState(null);
   const [connectionError, setConnectionError] = useState(null);
+  const [kdsWarning, setKdsWarning] = useState(false);
   
   const [activeDesktopMod, setActiveDesktopMod] = useState(null);
   
@@ -516,6 +517,11 @@ export default function App() {
       </header>
 
       {/* STATUS BANNER */}
+      {kdsWarning && (
+        <div style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', borderBottom: '1px solid #fff', padding: '12px 24px', textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: '#ffc107', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          ⚠️ KDS Unreachable — Print/Relay Manually
+        </div>
+      )}
       {(printerStatus || drawerOpen) && (
         <div style={{ backgroundColor: drawerOpen ? 'rgba(0, 255, 102, 0.2)' : 'rgba(255, 107, 0, 0.2)', borderBottom: '1px solid #fff', padding: '12px 24px', textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: drawerOpen ? 'var(--accent-success)' : 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
           {drawerOpen ? '🔓 CASH DRAWER UNLOCKED & TILL ACCESSED' : printerStatus}
@@ -542,6 +548,8 @@ export default function App() {
                   settleLocalOrder(order.id, method);
                   setShiftStats(getLocalShiftStats());
                   setTransactionHistory(listSettledLocalOrders());
+                  setKdsWarning(true);
+                  setTimeout(() => setKdsWarning(false), 6000);
                 } else if (session?.token) {
                   const payload = {
                     table: 'Express Counter',

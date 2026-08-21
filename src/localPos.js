@@ -142,6 +142,11 @@ export function listLocalOrders() {
   return read(ORDERS_KEY, []).filter(order => order.status === 'OPEN');
 }
 
+export function listSettledLocalOrders() {
+  const shift = getLocalShift();
+  return read(ORDERS_KEY, []).filter(o => o.status === 'SETTLED' && o.shiftId === shift?.id);
+}
+
 export function getLocalShiftStats() {
   const shift = getLocalShift();
   if (!shift) return { totalSales: 0, topWaiters: [] };

@@ -21,6 +21,7 @@ import {
   getLocalShiftStats,
   hasLocalRegister,
   listLocalOrders,
+  listSettledLocalOrders,
   removeLocalMenuItem,
   settleLocalOrder,
   startLocalShift,
@@ -119,6 +120,7 @@ export default function App() {
   const [shiftPin, setShiftPin] = useState('');
   const [shiftError, setShiftError] = useState('');
   const [shiftStats, setShiftStats] = useState(() => getLocalShiftStats());
+  const [transactionHistory, setTransactionHistory] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [selectedStaffForOrders, setSelectedStaffForOrders] = useState(null);
   const [menuItems, setMenuItems] = useState(() => getLocalCatalog());
@@ -161,6 +163,7 @@ export default function App() {
         items: order.items || [],
       })));
       setShiftStats(getLocalShiftStats());
+      setTransactionHistory(listSettledLocalOrders());
       return;
     }
     if (!session?.token) return;
@@ -291,6 +294,7 @@ export default function App() {
         // ponytail: No CRDT conflict resolution. Last write wins. Waitstaff can talk to each other to resolve table conflicts.
         settleLocalOrder(id, method);
         setShiftStats(getLocalShiftStats());
+        setTransactionHistory(listSettledLocalOrders());
       }
       setAccounts(accounts.filter(account => account.id !== id));
       if (method === 'CASH') handleOpenDrawer();
@@ -467,6 +471,7 @@ export default function App() {
                   const order = createLocalOrder('Express Counter', total, items.map(i => `${i.name} x${i.qty}`));
                   settleLocalOrder(order.id, method);
                   setShiftStats(getLocalShiftStats());
+                  setTransactionHistory(listSettledLocalOrders());
                 } else if (session?.token) {
                   await settleCloudOrder(session.token, {
                     table: 'Express Counter',
@@ -525,6 +530,41 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+              {/* TRANSACTION HISTORY (US-4.4) */}
+              {transactionHistory.length > 0 && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '16px' }}>Shift Transaction History</h3>
+                  <div className="glass-box" style={{ padding: '0', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead style={{ background: 'var(--glass-overlay)', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>
+                        <tr>
+                          <th style={{ padding: '16px' }}>Time</th>
+                          <th style={{ padding: '16px' }}>Table/Order</th>
+                          <th style={{ padding: '16px' }}>Server</th>
+                          <th style={{ padding: '16px' }}>Method</th>
+                          <th style={{ padding: '16px', textAlign: 'right' }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactionHistory.slice().reverse().map(txn => (
+                          <tr key={txn.id} style={{ borderTop: '1px solid var(--border-glass)' }}>
+                            <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{new Date(txn.settledAt).toLocaleTimeString()}</td>
+                            <td style={{ padding: '16px', fontWeight: 600 }}>{txn.table}</td>
+                            <td style={{ padding: '16px' }}>{txn.operatorName}</td>
+                            <td style={{ padding: '16px' }}>
+                              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', background: txn.paymentMethod === 'CASH' ? 'rgba(0, 255, 102, 0.1)' : 'rgba(33, 150, 243, 0.1)', color: txn.paymentMethod === 'CASH' ? 'var(--accent-success)' : '#2196F3' }}>
+                                {txn.paymentMethod}
+                              </span>
+                            </td>
+                            <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--accent-success)' }}>${txn.total.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
             {/* Ponytail: Staff vs Cashier split view for Accounts */}
             {['CASHIER', 'MANAGER', 'ADMIN', 'OWNER'].includes(session?.role?.toUpperCase()) && !selectedStaffForOrders ? (

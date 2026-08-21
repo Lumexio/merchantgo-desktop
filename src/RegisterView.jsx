@@ -7,6 +7,7 @@ export default function RegisterView({ menuItems, session, onSettle }) {
   // ponytail: minimal unabstracted local storage for terminal
   const [terminalProvider, setTerminalProvider] = useState(localStorage.getItem('terminal_provider') || 'NONE');
   const [terminalId, setTerminalId] = useState(localStorage.getItem('terminal_id') || '');
+  const [paymentError, setPaymentError] = useState(null);
 
   const addToCart = (item) => {
     const existing = cart.find(c => c.id === item.id);
@@ -20,6 +21,7 @@ export default function RegisterView({ menuItems, session, onSettle }) {
   const cartTotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.qty), 0);
 
   const handlePay = (method) => {
+    setPaymentError(null);
     // ponytail: simple callback mapping to desktop's local/cloud API.
     onSettle({ items: cart, total: cartTotal, method });
     setCart([]);
@@ -81,7 +83,12 @@ export default function RegisterView({ menuItems, session, onSettle }) {
                </button>
              ))}
           </div>
-          {cashTendered !== null && cashTendered >= cartTotal && (
+          {paymentError && (
+             <div style={{ color: 'var(--accent-error)', marginBottom: '16px', fontWeight: 700, fontSize: '0.9rem' }}>
+               {paymentError}
+             </div>
+          )}
+          {cashTendered !== null && cashTendered >= cartTotal && !paymentError && (
              <div style={{ color: 'var(--accent-success)', marginBottom: '16px', fontWeight: 700 }}>
                Change Due: ${(cashTendered - cartTotal).toFixed(2)}
              </div>
@@ -93,6 +100,7 @@ export default function RegisterView({ menuItems, session, onSettle }) {
             </button>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button disabled={cart.length === 0} onClick={async () => {
+                setPaymentError(null);
                 if (terminalProvider === 'MERCADOPAGO') {
                   try {
                     await fetch(`https://api.mercadopago.com/point/integration-api/devices/${terminalId}/payment-intents`, {
@@ -100,7 +108,7 @@ export default function RegisterView({ menuItems, session, onSettle }) {
                       headers: { Authorization: `Bearer ${localStorage.getItem('mp_token') || 'TEST_TOKEN'}`, 'Content-Type': 'application/json' },
                       body: JSON.stringify({ amount: cartTotal, description: "MerchantGo Order" })
                     });
-                  } catch (e) { alert("MP Point API Error: " + e.message); return; }
+                  } catch (e) { setPaymentError("MP Point API Error: " + e.message); return; }
                 } else if (terminalProvider === 'CLIP') {
                   try {
                     await fetch(`https://api.clip.mx/v1/payment-requests`, {
@@ -108,7 +116,7 @@ export default function RegisterView({ menuItems, session, onSettle }) {
                       headers: { Authorization: `Bearer ${localStorage.getItem('clip_token') || 'TEST_TOKEN'}`, 'Content-Type': 'application/json' },
                       body: JSON.stringify({ amount: cartTotal, reference: "MerchantGo" })
                     });
-                  } catch (e) { alert("Clip API Error: " + e.message); return; }
+                  } catch (e) { setPaymentError("Clip API Error: " + e.message); return; }
                 }
                 handlePay('CARD');
               }} className="btn-staff" style={{ background: '#635bff', padding: '14px', opacity: cart.length === 0 ? 0.5 : 1 }}>

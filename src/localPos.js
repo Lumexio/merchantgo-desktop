@@ -163,7 +163,7 @@ export function listLocalOrders() {
 
 export function listSettledLocalOrders() {
   const shift = getLocalShift();
-  return read(ORDERS_KEY, []).filter(o => o.status === 'SETTLED' && o.shiftId === shift?.id);
+  return read(ORDERS_KEY, []).filter(o => (o.status === 'SETTLED' || o.status === 'REFUNDED') && o.shiftId === shift?.id);
 }
 
 export function getLocalShiftStats() {
@@ -262,6 +262,19 @@ export function settleLocalOrder(orderId, paymentMethod, partialAmount = null) {
     appendAuditLog('SETTLE_ORDER', { orderId, amount: amountToSettle, paymentMethod });
     return 0;
   }
+}
+
+export function refundLocalOrder(orderId) {
+  const orders = read(ORDERS_KEY, []);
+  const order = orders.find(entry => entry.id === orderId);
+  if (!order || order.status !== 'SETTLED') throw new Error('Cannot refund an unsettled or missing account');
+  
+  // ponytail: Just change the status. The getLocalShiftStats() and Z-Report 
+  // only sum 'SETTLED' orders, so this automatically subtracts the revenue.
+  write(ORDERS_KEY, orders.map(entry => entry.id === orderId 
+    ? { ...entry, status: 'REFUNDED', refundedAt: new Date().toISOString() } 
+    : entry));
+  appendAuditLog('REFUND_ORDER', { orderId, amount: order.total });
 }
 
 export function getLocalCatalog() {

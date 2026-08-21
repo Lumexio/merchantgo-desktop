@@ -28,6 +28,7 @@ import {
   startLocalShift,
   createLocalOrder,
   updateLocalOrder,
+  refundLocalOrder,
 } from './localPos';
 import OnboardingConfigModal from './components/OnboardingConfigModal.jsx';
 
@@ -365,6 +366,23 @@ export default function App() {
     }
   };
 
+  const handleRefund = (id) => {
+    if (!can('SETTLE_ORDER')) return;
+    if (!window.confirm('Are you sure you want to void/refund this transaction? This cannot be undone.')) return;
+    
+    if (session?.offline) {
+      try {
+        refundLocalOrder(id);
+        setShiftStats(getLocalShiftStats());
+        setTransactionHistory(listSettledLocalOrders());
+      } catch (e) {
+        alert(e.message);
+      }
+    } else {
+      alert('Cloud API refunds must be processed through the web admin dashboard.');
+    }
+  };
+
   if (isFirstLaunch) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#0a0c10', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -603,21 +621,26 @@ export default function App() {
                           <th style={{ padding: '16px' }}>Server</th>
                           <th style={{ padding: '16px' }}>Method</th>
                           <th style={{ padding: '16px', textAlign: 'right' }}>Amount</th>
+                          <th style={{ padding: '16px', textAlign: 'right' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {transactionHistory.slice().reverse().map(txn => (
-                          <tr key={txn.id} style={{ borderTop: '1px solid var(--border-glass)' }}>
-                            <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{new Date(txn.settledAt).toLocaleTimeString()}</td>
-                            <td style={{ padding: '16px', fontWeight: 600 }}>{txn.table}</td>
-                            <td style={{ padding: '16px' }}>{txn.operatorName}</td>
-                            <td style={{ padding: '16px' }}>
-                              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', background: txn.paymentMethod === 'CASH' ? 'rgba(0, 255, 102, 0.1)' : 'rgba(33, 150, 243, 0.1)', color: txn.paymentMethod === 'CASH' ? 'var(--accent-success)' : '#2196F3' }}>
-                                {txn.paymentMethod}
-                              </span>
-                            </td>
-                            <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--accent-success)' }}>${txn.total.toFixed(2)}</td>
-                          </tr>
+                            <tr key={txn.id} style={{ borderTop: '1px solid var(--border-glass)', opacity: txn.status === 'REFUNDED' ? 0.5 : 1 }}>
+                              <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{new Date(txn.settledAt).toLocaleTimeString()}</td>
+                              <td style={{ padding: '16px', fontWeight: 600 }}>{txn.table}</td>
+                              <td style={{ padding: '16px' }}>{txn.operatorName}</td>
+                              <td style={{ padding: '16px' }}>
+                                <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', background: txn.paymentMethod === 'CASH' ? 'rgba(0, 255, 102, 0.1)' : 'rgba(33, 150, 243, 0.1)', color: txn.paymentMethod === 'CASH' ? 'var(--accent-success)' : '#2196F3' }}>
+                                  {txn.paymentMethod}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px', textAlign: 'right', fontWeight: 700, color: 'var(--accent-success)', textDecoration: txn.status === 'REFUNDED' ? 'line-through' : 'none' }}>${txn.total.toFixed(2)}</td>
+                              <td style={{ padding: '16px', textAlign: 'right' }}>
+                                {txn.status === 'REFUNDED' ? <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>REFUNDED</span> : 
+                                <button onClick={() => handleRefund(txn.id)} disabled={!can('SETTLE_ORDER')} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', opacity: can('SETTLE_ORDER') ? 1 : 0.5, border: '1px solid rgba(255, 68, 68, 0.3)', color: '#ff4444' }}>Void</button>}
+                              </td>
+                            </tr>
                         ))}
                       </tbody>
                     </table>

@@ -190,6 +190,22 @@ export function createLocalOrder(table, total, items = []) {
   return order;
 }
 
+export function updateLocalOrder(orderId, newItems, newTotal) {
+  const orders = read(ORDERS_KEY, []);
+  const order = orders.find(entry => entry.id === orderId);
+  if (!order) throw new Error('Local account not found');
+  
+  const updatedOrder = {
+    ...order,
+    items: newItems,
+    total: Number(newTotal) || 0,
+    updatedAt: new Date().toISOString()
+  };
+  
+  write(ORDERS_KEY, orders.map(entry => entry.id === orderId ? updatedOrder : entry));
+  return updatedOrder;
+}
+
 export function settleLocalOrder(orderId, paymentMethod, partialAmount = null) {
   const orders = read(ORDERS_KEY, []);
   const order = orders.find(entry => entry.id === orderId);

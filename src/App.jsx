@@ -26,6 +26,7 @@ import {
   settleLocalOrder,
   startLocalShift,
   createLocalOrder,
+  updateLocalOrder,
 } from './localPos';
 import OnboardingConfigModal from './components/OnboardingConfigModal.jsx';
 
@@ -331,6 +332,25 @@ export default function App() {
     }
   };
 
+  const handleAdjustTotal = (id) => {
+    const targetAccount = accounts.find(a => a.id === id);
+    if (!targetAccount) return;
+
+    let newTotalStr = window.prompt(`Adjust Total for ${targetAccount.table} (Current: $${targetAccount.total.toFixed(2)}).\nEnter new total amount:`, targetAccount.total.toFixed(2));
+    if (newTotalStr === null) return;
+    const newTotal = Number(newTotalStr);
+    if (isNaN(newTotal) || newTotal < 0) return alert('Invalid amount.');
+    
+    if (session?.offline) {
+      // ponytail: Minimal offline override. Log it to the ticket so it shows on the receipt.
+      const updatedItems = [...targetAccount.items, `[MANUAL ADJUSTMENT: $${newTotal.toFixed(2)}]`];
+      updateLocalOrder(id, updatedItems, newTotal);
+      setAccounts(accounts.map(a => a.id === id ? { ...a, total: newTotal, items: updatedItems } : a));
+    } else {
+      alert('Cloud API does not support manual total adjustments from the terminal yet.');
+    }
+  };
+
   if (isFirstLaunch) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#0a0c10', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -629,12 +649,24 @@ export default function App() {
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, display: 'block', marginBottom: '8px' }}>Line Item Orders</span>
                           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.92rem', color: '#ddd' }}>
                             {acc.items.map((i, idx) => (
-                              <li key={idx} onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', background: 'var(--glass-overlay)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>▪ {i}</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)', fontWeight: 800, padding: '2px 8px', background: 'rgba(0,255,102,0.1)', borderRadius: '4px' }}>+ MOD</span>
+                              <li key={idx} style={{ padding: '6px 10px', borderRadius: '6px', background: 'var(--glass-overlay)', transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', flex: 1 }}>▪ {i}</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <span onClick={() => setActiveDesktopMod({ accId: acc.id, itemIdx: idx, itemName: i })} style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent-success)', fontWeight: 800, padding: '2px 8px', background: 'rgba(0,255,102,0.1)', borderRadius: '4px' }}>+ MOD</span>
+                                  <span onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!session?.offline) return alert('Cloud sync does not support removing items yet.');
+                                    const updatedItems = acc.items.filter((_, index) => index !== idx);
+                                    updateLocalOrder(acc.id, updatedItems, acc.total);
+                                    setAccounts(accounts.map(a => a.id === acc.id ? { ...a, items: updatedItems } : a));
+                                  }} style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent-error, #ff4444)', fontWeight: 800, padding: '2px 8px', background: 'rgba(255,68,68,0.1)', borderRadius: '4px' }}>X</span>
+                                </div>
                               </li>
                             ))}
                           </ul>
+                          <button onClick={() => handleAdjustTotal(acc.id)} className="btn-secondary" style={{ width: '100%', marginTop: '12px', fontSize: '0.8rem', padding: '8px', border: '1px dashed var(--border-glass)' }}>
+                            + Adjust Total / Apply Discount
+                          </button>
                         </div>
                       </div>
 
@@ -825,7 +857,11 @@ export default function App() {
           onConfirm={(newString) => {
             const updated = [...accounts];
             const accIndex = updated.findIndex(a => a.id === activeDesktopMod.accId);
-            updated[accIndex].items[activeDesktopMod.itemIdx] = newString;
+            const order = updated[accIndex];
+            order.items[activeDesktopMod.itemIdx] = newString;
+            if (session?.offline) {
+              updateLocalOrder(order.id, order.items, order.total);
+            }
             setAccounts(updated);
             setActiveDesktopMod(null);
           }} 

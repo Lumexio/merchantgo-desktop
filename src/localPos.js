@@ -190,14 +190,40 @@ export function createLocalOrder(table, total, items = []) {
   return order;
 }
 
-export function settleLocalOrder(orderId, paymentMethod) {
+export function settleLocalOrder(orderId, paymentMethod, partialAmount = null) {
   const orders = read(ORDERS_KEY, []);
-  const settledAt = new Date().toISOString();
   const order = orders.find(entry => entry.id === orderId);
   if (!order) throw new Error('Local account not found');
-  write(ORDERS_KEY, orders.map(entry => entry.id === orderId
-    ? { ...entry, status: 'SETTLED', paymentMethod, settledAt }
-    : entry));
+
+  const amountToSettle = partialAmount && partialAmount < order.total ? Number(partialAmount) : order.total;
+  const isPartial = amountToSettle < order.total;
+  const settledAt = new Date().toISOString();
+
+  if (isPartial) {
+    // ponytail: Laziest split-bill ever. Don't build a transactions sub-table or change Z-Reports. 
+    // Just clone the order, settle the paid fraction, and leave the remainder open.
+    const remainder = order.total - amountToSettle;
+    const splitOrder = {
+      ...order,
+      id: crypto.randomUUID(),
+      total: amountToSettle,
+      status: 'SETTLED',
+      paymentMethod,
+      settledAt,
+      table: `${order.table} (Split)`
+    };
+    const openOrder = {
+      ...order,
+      total: remainder
+    };
+    write(ORDERS_KEY, orders.map(entry => entry.id === orderId ? openOrder : entry).concat(splitOrder));
+    return remainder;
+  } else {
+    write(ORDERS_KEY, orders.map(entry => entry.id === orderId
+      ? { ...entry, status: 'SETTLED', paymentMethod, settledAt }
+      : entry));
+    return 0;
+  }
 }
 
 export function getLocalCatalog() {

@@ -280,23 +280,41 @@ export default function App() {
   const settleAccount = async (id, method) => {
     if (!can('SETTLE_ORDER')) return;
     
+    const targetAccount = accounts.find(a => a.id === id);
+    if (!targetAccount) return;
+
+    let amountStr = window.prompt(`Settle ${targetAccount.table} (Total: $${targetAccount.total.toFixed(2)}).\nEnter amount to pay now (or leave default for full checkout):`, targetAccount.total.toFixed(2));
+    if (amountStr === null) return;
+    const amount = Number(amountStr);
+    if (isNaN(amount) || amount <= 0 || amount > targetAccount.total) return alert('Invalid amount.');
+    const isPartial = amount < targetAccount.total;
+
     // ponytail: The Human Webhook pattern. Instead of building complex infrastructure, we pause execution
     // and force the cashier to visually verify the terminal screen before wiping the order from the system.
     if (method === 'CARD') {
-      const approved = window.confirm(`Please process the card payment for Table ${id.slice(0, 8)} on the physical terminal. Did the terminal approve the payment?`);
+      const approved = window.confirm(`Please process the card payment for $${amount.toFixed(2)} on the physical terminal. Did the terminal approve the payment?`);
       if (!approved) return;
     }
     
     try {
-      if (session?.token) await settleCloudOrder(session.token, id, method);
+      if (session?.token) {
+        if (isPartial) throw new Error('Cloud API does not support partial payments yet.');
+        await settleCloudOrder(session.token, id, method);
+        setAccounts(accounts.filter(account => account.id !== id));
+      }
       else if (session?.offline) {
         if (!localShift) throw new Error('Start a staff shift before settling accounts');
-        // ponytail: No CRDT conflict resolution. Last write wins. Waitstaff can talk to each other to resolve table conflicts.
-        settleLocalOrder(id, method);
+        const remainder = settleLocalOrder(id, method, amount);
         setShiftStats(getLocalShiftStats());
         setTransactionHistory(listSettledLocalOrders());
+        
+        if (isPartial) {
+          setAccounts(accounts.map(account => account.id === id ? { ...account, total: remainder } : account));
+        } else {
+          setAccounts(accounts.filter(account => account.id !== id));
+        }
       }
-      setAccounts(accounts.filter(account => account.id !== id));
+      
       if (method === 'CASH') handleOpenDrawer();
     } catch (error) {
       setConnectionError(error.message);

@@ -1,12 +1,30 @@
 const PREFIX = 'merchantgo.desktop.local.';
 const CONFIG_KEY = `${PREFIX}config`;
-const SHIFT_KEY = `${PREFIX}shift`;
+const SHIFT_KEY = `${PREFIX}active-shift`;
 const ORDERS_KEY = `${PREFIX}orders`;
 const SHIFTS_KEY = `${PREFIX}closed-shifts`;
 const REPORTS_KEY = `${PREFIX}zreports`;
 const CATALOG_KEY = `${PREFIX}catalog`;
+const AUDIT_KEY = `${PREFIX}audit-logs`;
 const SNAPSHOT_SCHEMA = 'merchantgo.snapshot';
 const SNAPSHOT_VERSION = 2;
+
+export function getAuditLogs() {
+  return read(AUDIT_KEY, []);
+}
+
+export function appendAuditLog(action, details = {}) {
+  const shift = getLocalShift();
+  const log = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    operatorId: shift?.staffId || 'SYSTEM',
+    operatorName: shift?.staffName || 'SYSTEM',
+    action,
+    details
+  };
+  write(AUDIT_KEY, [...read(AUDIT_KEY, []), log]);
+}
 
 function read(key, fallback) {
   try {
@@ -135,6 +153,7 @@ export async function startLocalShift(pin) {
   if (existing) return existing;
   const shift = { id: crypto.randomUUID(), staffId: staff.id, staffName: staff.name, openedAt: new Date().toISOString() };
   write(SHIFT_KEY, shift);
+  appendAuditLog('START_SHIFT', { shiftId: shift.id });
   return shift;
 }
 
@@ -203,6 +222,7 @@ export function updateLocalOrder(orderId, newItems, newTotal) {
   };
   
   write(ORDERS_KEY, orders.map(entry => entry.id === orderId ? updatedOrder : entry));
+  appendAuditLog('MODIFY_ORDER', { orderId, oldTotal: order.total, newTotal: updatedOrder.total });
   return updatedOrder;
 }
 
@@ -233,11 +253,13 @@ export function settleLocalOrder(orderId, paymentMethod, partialAmount = null) {
       total: remainder
     };
     write(ORDERS_KEY, orders.map(entry => entry.id === orderId ? openOrder : entry).concat(splitOrder));
+    appendAuditLog('PARTIAL_PAYMENT', { orderId, amountPaid: amountToSettle, remainder, paymentMethod });
     return remainder;
   } else {
     write(ORDERS_KEY, orders.map(entry => entry.id === orderId
       ? { ...entry, status: 'SETTLED', paymentMethod, settledAt }
       : entry));
+    appendAuditLog('SETTLE_ORDER', { orderId, amount: amountToSettle, paymentMethod });
     return 0;
   }
 }
@@ -304,6 +326,7 @@ export function closeLocalShift() {
   write(SHIFTS_KEY, [...read(SHIFTS_KEY, []), { ...shift, deviceId: local.deviceId, revision: 1, closedAt }]);
   write(REPORTS_KEY, [...read(REPORTS_KEY, []), report]);
   localStorage.removeItem(SHIFT_KEY);
+  appendAuditLog('CLOSE_SHIFT', { shiftId: shift.id, reportId: report.id });
   return report;
 }
 

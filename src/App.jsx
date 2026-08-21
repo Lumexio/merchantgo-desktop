@@ -6,6 +6,7 @@ import {
   executeCashout,
   fetchActiveOrders,
   flushDesktopQueue,
+  enqueueDesktopOperation,
   loginMerchantGoAccount,
   settleCloudOrder,
   transferCloudOrder,
@@ -176,6 +177,19 @@ export default function App() {
   useEffect(() => {
     if (!session?.token || session?.offline) return;
     flushDesktopQueue(session.token).catch(() => null);
+    
+    // US-7.2 Background sync queue loop
+    const interval = setInterval(() => {
+      if (navigator.onLine) flushDesktopQueue(session.token).catch(() => null);
+    }, 30000);
+    
+    const handleOnline = () => flushDesktopQueue(session.token).catch(() => null);
+    window.addEventListener('online', handleOnline);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+    };
   }, [session?.token, session?.offline]);
 
   useEffect(() => {
@@ -227,7 +241,7 @@ export default function App() {
   const executeCorte = async (type) => {
     if (session?.token) {
       try {
-        const result = await executeCashout(session.token, type);
+        let result; try { result = await executeCashout(session.token, type); } catch(e) { if(e.message.includes('fetch') || e.message.includes('Network')) { enqueueDesktopOperation({ kind: 'cashout', payload: { type } }); return alert('Network error. Cashout queued for background sync.'); } else throw e; }
         const report = result.z_report_ticket;
         setLastZReport({
           id: `Z-${Date.now().toString(36).toUpperCase()}`,
@@ -300,7 +314,7 @@ export default function App() {
     try {
       if (session?.token) {
         if (isPartial) throw new Error('Cloud API does not support partial payments yet.');
-        await settleCloudOrder(session.token, id, method);
+        try { await settleCloudOrder(session.token, id, method); } catch(e) { if(e.message.includes('fetch') || e.message.includes('Network')) enqueueDesktopOperation({ kind: 'settle_order', payload: { orderId: id, paymentMethod: method } }); else throw e; }
         setAccounts(accounts.filter(account => account.id !== id));
       }
       else if (session?.offline) {
@@ -325,7 +339,7 @@ export default function App() {
   const transferAccount = async (id) => {
     if (!can('TRANSFER_ORDER')) return;
     try {
-      if (session?.token) await transferCloudOrder(session.token, id, 'Manager Station');
+      if (session?.token) { try { await transferCloudOrder(session.token, id, 'Manager Station'); } catch(e) { if(e.message.includes('fetch') || e.message.includes('Network')) enqueueDesktopOperation({ kind: 'transfer_order', payload: { orderId: id, staffName: 'Manager Station' } }); else throw e; } }
       setAccounts(accounts.map(account => account.id === id ? { ...account, server: 'Manager Station' } : account));
     } catch (error) {
       setConnectionError(error.message);
@@ -511,11 +525,18 @@ export default function App() {
                   setShiftStats(getLocalShiftStats());
                   setTransactionHistory(listSettledLocalOrders());
                 } else if (session?.token) {
-                  await settleCloudOrder(session.token, {
+                  const payload = {
                     table: 'Express Counter',
                     total,
                     items: items.map(i => `${i.name} x${i.qty}`),
-                  }, method);
+                  };
+                  try {
+                    await settleCloudOrder(session.token, payload, method);
+                  } catch (e) {
+                    if (e.message.includes('fetch') || e.message.includes('Network')) {
+                      enqueueDesktopOperation({ kind: 'settle_order', payload: { orderId: payload, paymentMethod: method } });
+                    } else throw e;
+                  }
                 }
                 if (method === 'CASH') handleOpenDrawer();
                 else alert(`Card terminal payment for $${total} completed.`);
